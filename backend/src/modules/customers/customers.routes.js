@@ -12,4 +12,9 @@ router.post('/', authorize('admin', 'sales'), controller.create);
 router.put('/:id', authorize('admin', 'sales', 'support'), controller.update);
 router.delete('/:id', authorize('admin'), controller.remove);
 
+// CV / resume upload (admin & sales can upload; support can download)
+router.post('/:id/cv', authorize('admin', 'sales'), controller.uploadCv);
+router.get('/:id/cv', authorize('admin', 'sales', 'support'), controller.getCv);
+router.delete('/:id/cv', authorize('admin', 'sales'), controller.removeCv);
+
 module.exports = router;

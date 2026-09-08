@@ -42,9 +42,24 @@ CRM/
 
 ### 1. Database
 
+Create the database automatically using the provided script (no manual `createdb` needed):
+
 ```bash
-createdb crm
+cd backend
+npm run db:create          # creates the database from DATABASE_URL if it doesn't exist
+npm run migrate            # creates tables + indexes
+node src/db/seed.js        # optional demo data
 ```
+
+All PostgreSQL settings are read from `.env`:
+
+```env
+DATABASE_URL=postgres://postgres:<password>@<host>:<port>/crm
+PGSSL=false
+PG_ADMIN_DB=postgres   # database used for admin tasks during db:create (default: postgres)
+```
+
+`npm run db:create` is idempotent - safe to run repeatedly. It connects to the admin database (`PG_ADMIN_DB`) and creates the target database named in `DATABASE_URL` if missing. Set a non-default admin database or a non-default port (e.g. `5433`) directly in `DATABASE_URL`.
 
 ### 2. Backend
 
@@ -52,9 +67,7 @@ createdb crm
 cd backend
 cp .env.example .env      # set DATABASE_URL, JWT secrets
 npm install
-npm run migrate           # creates tables + indexes
-node src/db/seed.js       # optional demo data
-npm run dev                # http://localhost:4000
+npm run dev               # http://localhost:4000
 ```
 
 ### 3. Frontend

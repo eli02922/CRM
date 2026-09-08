@@ -1,5 +1,49 @@
+const fs = require('fs');
+const path = require('path');
 const pool = require('../../config/db');
 const HttpError = require('../../utils/HttpError');
+
+const CV_DIR = path.join(__dirname, '..', '..', '..', 'uploads', 'cvs');
+
+function cvFilePath(storedName) {
+  return path.join(CV_DIR, storedName);
+}
+
+/** Saves an uploaded CV (already written by multer) and records it on the customer. */
+async function saveCv(id, file) {
+  const existing = await getById(id);
+  // Replace: remove previous file if there was one.
+  if (existing.cv_file_path) {
+    fs.promises.unlink(cvFilePath(existing.cv_file_path)).catch(() => {});
+  }
+  const { rows } = await pool.query(
+    `UPDATE customers
+     SET cv_file_path = $1, cv_original_name = $2, updated_at = now()
+     WHERE id = $3 RETURNING cv_file_path, cv_original_name, updated_at`,
+    [file.filename, file.originalname, id]
+  );
+  return rows[0];
+}
+
+/** Streams the customer's stored CV back to the client. */
+async function getCv(id, res) {
+  const customer = await getById(id);
+  if (!customer.cv_file_path) throw new HttpError(404, 'No CV uploaded for this customer');
+  res.setHeader('Content-Disposition', `attachment; filename="${customer.cv_original_name}"`);
+  res.sendFile(cvFilePath(customer.cv_file_path));
+}
+
+/** Removes the CV record and its file from disk. */
+async function removeCv(id) {
+  const customer = await getById(id);
+  if (customer.cv_file_path) {
+    fs.promises.unlink(cvFilePath(customer.cv_file_path)).catch(() => {});
+  }
+  await pool.query(
+    'UPDATE customers SET cv_file_path = NULL, cv_original_name = NULL, updated_at = now() WHERE id = $1',
+    [id]
+  );
+}
 
 async function list({ limit, offset, search, ownerId }) {
   const conditions = [];
@@ -95,4 +139,4 @@ async function remove(id) {
   if (!rowCount) throw new HttpError(404, 'Customer not found');
 }
 
-module.exports = { list, getById, getTimeline, create, update, remove };
+module.exports = { list, getById, getTimeline, create, update, remove, saveCv, getCv, removeCv };

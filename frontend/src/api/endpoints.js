@@ -23,6 +23,15 @@ export const customersApi = {
   create: (payload) => api.post('/customers', payload).then((r) => r.data),
   update: (id, payload) => api.put(`/customers/${id}`, payload).then((r) => r.data),
   remove: (id) => api.delete(`/customers/${id}`),
+  uploadCv: (id, file) => {
+    const formData = new FormData();
+    formData.append('cv', file);
+    return api.post(`/customers/${id}/cv`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then((r) => r.data);
+  },
+  cvUrl: (id) => `${api.defaults.baseURL}/customers/${id}/cv`,
+  removeCv: (id) => api.delete(`/customers/${id}/cv`),
 };
 
 export const opportunitiesApi = {
