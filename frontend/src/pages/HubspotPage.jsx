@@ -36,12 +36,27 @@ export default function HubspotPage() {
     }
   };
 
+  const runPushAll = async () => {
+    setBusy('push-all');
+    setMessage('');
+    setError('');
+    try {
+      const res = await hubspotApi.pushAll();
+      setMessage(`${res.message} — ${res.pushed} pushed${res.failed ? `, ${res.failed} failed` : ''}`);
+      loadLogs();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to push to HubSpot');
+    } finally {
+      setBusy('');
+    }
+  };
+
   return (
     <div>
       <h1>HubSpot Integration</h1>
       <p className="muted">
-        Pull contacts and deals from HubSpot into the CRM. Requires a valid token in the backend
-        <code> .env</code> (<code>HUBSPOT_ENABLED=true</code> and <code>HUBSPOT_ACCESS_TOKEN</code>).
+        Pull contacts and deals into the CRM, or push CRM customers and deals back to HubSpot. Requires a valid
+        token in the backend <code>.env</code> (<code>HUBSPOT_ENABLED=true</code> and <code>HUBSPOT_ACCESS_TOKEN</code>).
       </p>
 
       {message && <div className="alert-success">{message}</div>}
@@ -61,6 +76,13 @@ export default function HubspotPage() {
           onClick={() => runSync('deals')}
         >
           {busy === 'deals' ? 'Syncing…' : 'Sync Deals'}
+        </button>
+        <button
+          className="btn-primary"
+          disabled={!!busy}
+          onClick={runPushAll}
+        >
+          {busy === 'push-all' ? 'Pushing…' : 'Push All to HubSpot'}
         </button>
       </div>
 

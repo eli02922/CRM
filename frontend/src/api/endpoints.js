@@ -54,6 +54,9 @@ export const activitiesApi = {
 export const hubspotApi = {
   syncContacts: () => api.post('/hubspot/contacts/sync').then((r) => r.data),
   syncDeals: () => api.post('/hubspot/deals/sync').then((r) => r.data),
+  pushCustomer: (id) => api.post(`/hubspot/customers/${id}/push`).then((r) => r.data),
+  pushOpportunity: (id) => api.post(`/hubspot/opportunities/${id}/push`).then((r) => r.data),
+  pushAll: () => api.post('/hubspot/push-all').then((r) => r.data),
   logs: (params) => api.get('/hubspot/logs', { params }).then((r) => r.data),
 };
 

@@ -101,6 +101,131 @@ async function syncDeals(userId) {
   }
 }
 
+/** Maps a local CRM customer to HubSpot contact properties. */
+function customerToContactProps(customer) {
+  const props = {
+    company: customer.company_name || '',
+    email: customer.email || '',
+    phone: customer.phone || '',
+  };
+  // HubSpot requires at least one of email/firstname/lastname; use company as firstname fallback.
+  if (!props.email) {
+    props.firstname = customer.company_name || 'Unknown';
+  }
+  return props;
+}
+
+/**
+ * Pushes a single customer to HubSpot as a contact.
+ * If the customer has hubspot_id, update; otherwise search by email, else create.
+ * Records the returned hubspot_id back on the customer.
+ */
+async function pushCustomer(customerId) {
+  ensureEnabled();
+  const { rows } = await pool.query('SELECT * FROM customers WHERE id = $1', [customerId]);
+  const customer = rows[0];
+  if (!customer) throw new HttpError(404, 'Customer not found');
+
+  const properties = customerToContactProps(customer);
+  let hsId = customer.hubspot_id;
+
+  if (hsId) {
+    await hubspot.updateContact(hsId, properties);
+  } else if (customer.email) {
+    const existing = await hubspot.searchContactsByEmail(customer.email);
+    const match = existing.results && existing.results[0];
+    if (match) {
+      hsId = String(match.id || match.properties.hs_object_id);
+      await hubspot.updateContact(hsId, properties);
+    } else {
+      const created = await hubspot.createContact(properties);
+      hsId = String(created.id);
+    }
+  } else {
+    const created = await hubspot.createContact(properties);
+    hsId = String(created.id);
+  }
+
+  await pool.query('UPDATE customers SET hubspot_id = $1, updated_at = now() WHERE id = $2', [hsId, customerId]);
+  return { customerId, hubspotId: hsId };
+}
+
+/** Maps a local opportunity to HubSpot deal properties. */
+function opportunityToDealProps(opp) {
+  return {
+    dealname: opp.name || '',
+    amount: opp.amount != null ? String(opp.amount) : '0',
+    closedate: opp.expected_close_date || undefined,
+  };
+}
+
+/**
+ * Pushes a single opportunity to HubSpot as a deal (update if linked, else search by name, else create).
+ */
+async function pushOpportunity(opportunityId) {
+  ensureEnabled();
+  const { rows } = await pool.query('SELECT * FROM opportunities WHERE id = $1', [opportunityId]);
+  const opp = rows[0];
+  if (!opp) throw new HttpError(404, 'Opportunity not found');
+
+  const properties = opportunityToDealProps(opp);
+  let hsId = opp.hubspot_id;
+
+  if (hsId) {
+    await hubspot.updateDeal(hsId, properties);
+  } else if (opp.name) {
+    const existing = await hubspot.searchDealsByName(opp.name);
+    const match = existing.results && existing.results[0];
+    if (match) {
+      hsId = String(match.id || match.properties.hs_object_id);
+      await hubspot.updateDeal(hsId, properties);
+    } else {
+      const created = await hubspot.createDeal(properties);
+      hsId = String(created.id);
+    }
+  } else {
+    const created = await hubspot.createDeal(properties);
+    hsId = String(created.id);
+  }
+
+  await pool.query('UPDATE opportunities SET hubspot_id = $1, updated_at = now() WHERE id = $2', [hsId, opportunityId]);
+  return { opportunityId, hubspotId: hsId };
+}
+
+/**
+ * Bulk-push: pushes all customers (contacts) and opportunities (deals) to HubSpot.
+ */
+async function pushAll(userId) {
+  ensureEnabled();
+  const { rows: customers } = await pool.query('SELECT id FROM customers');
+  const { rows: opportunities } = await pool.query('SELECT id FROM opportunities');
+
+  let pushed = 0;
+  let failed = 0;
+
+  for (const c of customers) {
+    try {
+      await pushCustomer(c.id);
+      pushed += 1;
+    } catch (err) {
+      failed += 1;
+      await logSync('contacts_push', 'failed', pushed, err.message, userId);
+    }
+  }
+  for (const o of opportunities) {
+    try {
+      await pushOpportunity(o.id);
+      pushed += 1;
+    } catch (err) {
+      failed += 1;
+      await logSync('deals_push', 'failed', pushed, err.message, userId);
+    }
+  }
+
+  await logSync('push_all', failed ? 'partial' : 'success', pushed, failed ? `${failed} record(s) failed` : null, userId);
+  return { pushed, failed };
+}
+
 async function listLogs(limit = 50) {
   const { rows } = await pool.query(
     'SELECT * FROM hubspot_sync_log ORDER BY created_at DESC LIMIT $1',
@@ -109,4 +234,11 @@ async function listLogs(limit = 50) {
   return rows;
 }
 
-module.exports = { syncContacts, syncDeals, listLogs };
+module.exports = {
+  syncContacts,
+  syncDeals,
+  pushCustomer,
+  pushOpportunity,
+  pushAll,
+  listLogs,
+};

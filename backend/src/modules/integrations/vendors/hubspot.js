@@ -1,22 +1,26 @@
 const axios = require('axios');
-const env = require('../../config/env');
 
 const BASE = 'https://api.hubapi.com';
 
-const client = axios.create({
-  baseURL: BASE,
-  headers: { Authorization: `Bearer ${env.hubspot.token}` },
-  timeout: 15000,
-});
+let client;
 
-async function getContacts(after) {
+function init(cfg) {
+  client = axios.create({
+    baseURL: cfg.baseUrl || BASE,
+    headers: { Authorization: `Bearer ${cfg.token}` },
+    timeout: 15000,
+  });
+  return client;
+}
+
+async function listContacts(after) {
   const params = { limit: 100, properties: 'firstname,lastname,email,phone,company,hs_object_id' };
   if (after) params.after = after;
   const { data } = await client.get('/crm/v3/objects/contacts', { params });
   return data;
 }
 
-async function getDeals(after) {
+async function listDeals(after) {
   const params = { limit: 100, properties: 'dealname,amount,dealstage,closedate,hs_object_id' };
   if (after) params.after = after;
   const { data } = await client.get('/crm/v3/objects/deals', { params });
@@ -28,8 +32,8 @@ async function createContact(properties) {
   return data;
 }
 
-async function updateContact(hsId, properties) {
-  const { data } = await client.patch(`/crm/v3/objects/contacts/${hsId}`, { properties });
+async function updateContact(id, properties) {
+  const { data } = await client.patch(`/crm/v3/objects/contacts/${id}`, { properties });
   return data;
 }
 
@@ -46,8 +50,8 @@ async function createDeal(properties) {
   return data;
 }
 
-async function updateDeal(hsId, properties) {
-  const { data } = await client.patch(`/crm/v3/objects/deals/${hsId}`, { properties });
+async function updateDeal(id, properties) {
+  const { data } = await client.patch(`/crm/v3/objects/deals/${id}`, { properties });
   return data;
 }
 
@@ -59,22 +63,31 @@ async function searchDealsByName(name) {
   return data;
 }
 
-async function searchContactsByCompanyName(company) {
-  const { data } = await client.post('/crm/v3/objects/contacts/search', {
-    filterGroups: [{ filters: [{ propertyName: 'company', operator: 'EQ', value: company }] }],
-    properties: ['firstname', 'lastname', 'email', 'phone', 'company', 'hs_object_id'],
-  });
-  return data;
-}
+// Field mapping between the CRM's normalized shape and HubSpot's property names.
+const fieldMap = {
+  contact: {
+    companyName: 'company',
+    email: 'email',
+    phone: 'phone',
+    firstName: 'firstname',
+    lastName: 'lastname',
+  },
+  deal: {
+    name: 'dealname',
+    amount: 'amount',
+    closeDate: 'closedate',
+  },
+};
 
 module.exports = {
-  getContacts,
-  getDeals,
+  init,
+  listContacts,
+  listDeals,
   createContact,
   updateContact,
   searchContactsByEmail,
   createDeal,
   updateDeal,
   searchDealsByName,
-  searchContactsByCompanyName,
+  fieldMap,
 };
