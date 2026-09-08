@@ -8,6 +8,7 @@ import CustomersPage from './pages/CustomersPage';
 import CustomerDetailPage from './pages/CustomerDetailPage';
 import PipelinePage from './pages/PipelinePage';
 import ActivitiesPage from './pages/ActivitiesPage';
+import HubspotPage from './pages/HubspotPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/customers/:id" element={<CustomerDetailPage />} />
           <Route path="/pipeline" element={<PipelinePage />} />
           <Route path="/activities" element={<ActivitiesPage />} />
+          <Route path="/hubspot" element={<HubspotPage />} />
         </Route>
       </Route>
 

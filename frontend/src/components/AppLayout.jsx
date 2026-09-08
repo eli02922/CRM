@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { to: '/customers', label: 'Customers' },
   { to: '/pipeline', label: 'Pipeline' },
   { to: '/activities', label: 'Activities' },
+  { to: '/hubspot', label: 'HubSpot', adminOnly: true },
 ];
 
 export default function AppLayout() {
@@ -17,7 +18,7 @@ export default function AppLayout() {
       <aside className="sidebar">
         <div className="brand">CRM</div>
         <nav>
-          {NAV_ITEMS.map((item) => (
+          {NAV_ITEMS.filter((item) => !item.adminOnly || user?.role === 'admin').map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end} className="nav-link">
               {item.label}
             </NavLink>

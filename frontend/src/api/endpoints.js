@@ -51,6 +51,12 @@ export const activitiesApi = {
   remove: (id) => api.delete(`/activities/${id}`),
 };
 
+export const hubspotApi = {
+  syncContacts: () => api.post('/hubspot/contacts/sync').then((r) => r.data),
+  syncDeals: () => api.post('/hubspot/deals/sync').then((r) => r.data),
+  logs: (params) => api.get('/hubspot/logs', { params }).then((r) => r.data),
+};
+
 export const reportsApi = {
   summary: () => api.get('/reports/summary').then((r) => r.data),
   leadConversion: (params) => api.get('/reports/lead-conversion', { params }).then((r) => r.data),
