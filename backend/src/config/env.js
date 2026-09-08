@@ -12,6 +12,10 @@ module.exports = {
   port: Number(process.env.PORT) || 4000,
   nodeEnv: process.env.NODE_ENV || 'development',
   clientOrigin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+  hubspot: {
+    token: process.env.HUBSPOT_ACCESS_TOKEN || '',
+    enabled: (process.env.HUBSPOT_ENABLED || 'false') === 'true',
+  },
   jwt: {
     accessSecret: required('JWT_ACCESS_SECRET'),
     refreshSecret: required('JWT_REFRESH_SECRET'),

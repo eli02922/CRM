@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+require('dotenv').config();
 const pool = require('../config/db');
 
 async function migrateV2() {

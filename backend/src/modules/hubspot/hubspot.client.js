@@ -5,7 +5,7 @@ const BASE = 'https://api.hubapi.com';
 
 const client = axios.create({
   baseURL: BASE,
-  headers: { Authorization: `Bearer ${env.hubspotToken}` },
+  headers: { Authorization: `Bearer ${env.hubspot.token}` },
   timeout: 15000,
 });
 

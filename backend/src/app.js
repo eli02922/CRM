@@ -15,6 +15,7 @@ const opportunityRoutes = require('./modules/opportunities/opportunities.routes'
 const activityRoutes = require('./modules/activities/activities.routes');
 const reportRoutes = require('./modules/reports/reports.routes');
 const supportCaseRoutes = require('./modules/supportCases/supportCases.routes');
+const hubspotRoutes = require('./modules/hubspot/hubspot.routes');
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use('/api/opportunities', opportunityRoutes);
 app.use('/api/activities', activityRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/support-cases', supportCaseRoutes);
+app.use('/api/hubspot', hubspotRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
